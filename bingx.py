@@ -113,3 +113,10 @@ def check_position_opened(symbol):
     response_json = json.loads(response)['data']
     pos_quantity = len(response_json)
     return pos_quantity > 0
+
+
+
+def open_position_mock(initialPrice, priceStop):
+    stopPercent =  utils.calculate_percent_stop(initialPrice, priceStop)
+    a = 1
+    return stopPercent
