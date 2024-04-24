@@ -8,7 +8,7 @@ import indicadores
 def tester(symbol, temporality, smaValues, takeProfitValues, startTime, endTime, initialCapital):
     startTimeMilis = utils.convertDates(startTime)
     endTimeMilis = utils.convertDates(endTime)
-    data = get_data_market(symbol, temporality, "1000", startTimeMilis, endTimeMilis)
+    data = get_all_data_market(symbol, temporality, "1440", startTimeMilis, endTimeMilis)
     resultTest = dict()
     for smaValue in smaValues:
         [capital, op_winners, op_losers] = strategy(data, smaValue, 1, initialCapital)
@@ -52,7 +52,7 @@ def strategy(data, smaValue, takeProfitValue, initialCapital):
             if (totalLength - indice) > smaValue:
                 fila = data.iloc[indice + 1]
                 filaAnt = data.iloc[indice + 2]
-                tiempo_actual = utils.timestampToDate(fila.time)
+                tiempo_actual = fila.time
                 if order_open == True:
                     resultCheckStop = utils.check_if_stop(fila, stopLoss, initialCapital, stop_percent, mode)
                     initialCapital = resultCheckStop["initialCapital"]
@@ -122,7 +122,7 @@ def strategy(data, smaValue, takeProfitValue, initialCapital):
 
 
 
-def get_data_market(symbol, temporality, limit, startDate, endDate):
+def get_data_market(symbol, temporality, limit, startDate):
     payload = {}
     path = '/openApi/swap/v3/quote/klines'
     method = "GET"
@@ -130,8 +130,7 @@ def get_data_market(symbol, temporality, limit, startDate, endDate):
         "symbol": symbol,
         "interval": temporality,
         "limit": limit,
-        "startTime": str(startDate),
-        "endTime": str(endDate)
+        "startTime": str(startDate)
     }
     paramsStr = bingx.parseParam(paramsMap)
     dataCandles = bingx.send_request(method, path, paramsStr, payload)
@@ -139,5 +138,21 @@ def get_data_market(symbol, temporality, limit, startDate, endDate):
     candles_string = json.dumps(json_candles['data'])
     df = pd.DataFrame(json.loads(candles_string))
     df.rename(columns={'close': 'Close'}, inplace=True)
+    df['time'] = pd.to_datetime(df['time'], utc=True, unit='ms')
     df.set_index('time')
     return df
+
+def get_all_data_market(symbol, temporality, limit, startDate, endDate):
+    finalDataFrame = pd.DataFrame()
+    finalDate = 0
+    while finalDate < endDate:
+        data = get_data_market(symbol, temporality,limit, startDate)
+        lastDate = str(data.iloc[0].time).split('+')[0]
+        if data.shape[0] == 1:
+            finalDate = endDate
+        else:
+            finalDate = utils.convertDates(lastDate)
+        startDate = finalDate
+        if finalDate != endDate:
+            finalDataFrame = pd.concat([data, finalDataFrame])
+    return finalDataFrame.drop_duplicates()

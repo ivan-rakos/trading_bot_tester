@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 
 
+
 def calculate_size_position(percent, leverage, symbol):
     balance = bingx.get_balance()
     quantity_position_aux = balance * (percent / 100)
@@ -28,7 +29,9 @@ def calculate_tp_sl(side, profit, stop, price):
 
 
 def convertDates(strDate):
-    tiempo_segundos = time.mktime(time.strptime(strDate, "%Y/%m/%d"))
+    fecha_hora = time.strptime(strDate, "%Y-%m-%d %H:%M:%S")
+    fecha_hora_datetime = datetime.fromtimestamp(time.mktime(fecha_hora))
+    tiempo_segundos = (fecha_hora_datetime - datetime(1970, 1, 1)).total_seconds()
     # Convertir los segundos a milisegundos
     milisegundos = tiempo_segundos * 1000
     return int(milisegundos)
