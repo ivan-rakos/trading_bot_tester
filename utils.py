@@ -41,26 +41,47 @@ def timestampToDate(time):
 
 def calculate_percent_stop(initialPrice, finalPrice):
     return abs(100 - (finalPrice * 100)/initialPrice) * -1
+def calculate_percent_profit(initialPrice, takeProfitPercent, mode):
+    gap_price = (initialPrice * (takeProfitPercent/100))
+    price_take_profit = 0.0
+    if mode == "buy":
+        price_take_profit = initialPrice + gap_price
+    else:
+        price_take_profit = initialPrice - gap_price
+    return price_take_profit
 
-def check_if_stop(data, stop, capital, percent_stop, mode):
+
+def check_if_stop_profit(data, stop, profit,  capital, percent_stop, percent_profit, mode, fee):
     takeStop = False
+    takeProfit = False
     if (mode == "sell" and float(data.high) >= stop) or (mode == "buy" and float(data.low) <= stop):
-        capital = capital + (capital * percent_stop/100)
+        lost_capital = (capital * percent_stop/100)
+        lost_capital_fee = apply_fees(lost_capital, fee)
+        capital = capital + lost_capital_fee
         takeStop = True
-    return {"initialCapital": capital, "takeStop": takeStop}
+    elif(mode == "sell" and float(data.low) <= profit) or (mode == "buy" and float(data.high) >= profit):
+        won_capital = (capital * (percent_profit/100))
+        won_capital_fee = apply_fees(won_capital, fee)
+        capital = capital + won_capital_fee
+        takeProfit = True
+    return {"initialCapital": capital, "takeStop": takeStop, "takeProfit": takeProfit}
 
-def check_result(data, priceOpened, priceClosed, mode, capital, op_winners, op_losers):
+
+def check_result(data, priceOpened, priceClosed, mode, capital, op_winners, op_losers, fee):
     new_capital = 0.0
     operation_winner = False
     diff_price = abs(100 - (priceClosed * 100)/priceOpened)
+    won_lost_capital = (capital * diff_price/100)
+    won_lost_capital_fee = apply_fees(won_lost_capital, fee)
     if mode == "buy" and priceClosed > priceOpened:
-        new_capital = capital + (capital * diff_price/100)
+
+        new_capital = capital + won_lost_capital_fee
     if mode == "buy" and priceClosed <= priceOpened:
-        new_capital = capital - (capital * diff_price / 100)
+        new_capital = capital - won_lost_capital_fee
     if mode == "sell" and priceClosed < priceOpened:
-        new_capital = capital + (capital * diff_price / 100)
+        new_capital = capital + won_lost_capital_fee
     if mode == "sell" and priceClosed >= priceOpened:
-        new_capital = capital - (capital * diff_price / 100)
+        new_capital = capital - won_lost_capital_fee
 
     if new_capital > capital:
         op_winners = op_winners +1
@@ -68,3 +89,7 @@ def check_result(data, priceOpened, priceClosed, mode, capital, op_winners, op_l
         op_losers = op_losers +1
 
     return [new_capital, op_winners, op_losers]
+
+def apply_fees(capital, fee):
+    fee_calculated = capital * fee
+    return capital-fee_calculated

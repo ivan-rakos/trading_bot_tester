@@ -5,23 +5,27 @@ import utils
 import indicadores
 
 
-def tester(symbol, temporality, smaValues, takeProfitValues, startTime, endTime, initialCapital):
+def tester(symbol, temporality, smaValues, emaValues, takeProfitValues, startTime, endTime, initialCapital):
     startTimeMilis = utils.convertDates(startTime)
     endTimeMilis = utils.convertDates(endTime)
     data = get_all_data_market(symbol, temporality, "1440", startTimeMilis, endTimeMilis)
     resultTest = dict()
     for smaValue in smaValues:
-        [capital, op_winners, op_losers] = strategy(data, smaValue, 1, initialCapital)
-        op_total = op_winners + op_losers
-        winner_percent = (op_winners * 100) / op_total
-        loser_percent = (op_losers * 100) / op_total
-        result = {'beneficio': capital, 'op_total': op_total, 'op_winner': op_winners, 'winner_percent': winner_percent
-                  , 'op_losers': op_losers, 'loser_percent': loser_percent}
-        resultTest[smaValue] = result
+        for emaValue in emaValues:
+            for takeProfitPercent in takeProfitValues:
+                [capital, op_winners, op_losers] = strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital)
+                op_total = op_winners + op_losers
+                winner_percent = (op_winners * 100) / op_total
+                loser_percent = (op_losers * 100) / op_total
+                capital_percent = ((capital*100)/initialCapital) - 100
+                result = {'beneficio': capital, 'beneficio_porcentaje': round(capital_percent,2), 'op_total': op_total, 'op_winner': op_winners, 'winner_percent': winner_percent
+                          , 'op_losers': op_losers, 'loser_percent': loser_percent}
+                resultTest[smaValue] = result
 
     for result in resultTest:
         data = resultTest[result]
         beneficio = data['beneficio']
+        capital_percent = data['beneficio_porcentaje']
         op_total = data['op_total']
         op_winner = data['op_winner']
         winner_percent = data['winner_percent']
@@ -29,7 +33,7 @@ def tester(symbol, temporality, smaValues, takeProfitValues, startTime, endTime,
         loser_percent = data['loser_percent']
         print("###################### RESULTADOS ##################")
         print(f'Resultados del test realizado con ema: {result}')
-        print(f'Beneficio final: {beneficio}')
+        print(f'Beneficio final: {beneficio} --> {capital_percent}%')
         print(f'Operaciones totales : {op_total}')
         print(f'Operaciones ganadoras : {op_winners} - {winner_percent}%')
         print(f'Operaciones perdedoras : {op_losers} - {loser_percent}%')
@@ -38,41 +42,51 @@ def tester(symbol, temporality, smaValues, takeProfitValues, startTime, endTime,
 
 
 
-def strategy(data, smaValue, takeProfitValue, initialCapital):
+def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
     totalLength = len(data)
     order_open = False
     mode = ""
     stop_percent = 0.0
     stopLoss = 0.0
+    takeProfit = 0.0
     priceOpened = 0.0
     op_winners = 0
     op_losers = 0
+    fee = 0.0005
+    fee_limit = 0.0002
     try:
         for indice in range(len(data) - 1, -1, -1):
-            if (totalLength - indice) > smaValue:
+            maxValue = max(smaValue,emaValue)
+            if (totalLength - indice) > maxValue:
                 fila = data.iloc[indice + 1]
                 filaAnt = data.iloc[indice + 2]
                 tiempo_actual = fila.time
                 if order_open == True:
-                    resultCheckStop = utils.check_if_stop(fila, stopLoss, initialCapital, stop_percent, mode)
+                    resultCheckStop = utils.check_if_stop_profit(fila, stopLoss, takeProfit, initialCapital, stop_percent, takeProfitPercent, mode, fee_limit)
                     initialCapital = resultCheckStop["initialCapital"]
                     takeStop = resultCheckStop["takeStop"]
-                    if takeStop:
+                    takeProfitR = resultCheckStop["takeProfit"]
+                    if takeStop or takeProfitR:
                         order_open = False
-                        print("Operacion toca STOP LOSS y se CIERRA")
                         mode = ""
-                        op_losers = op_losers + 1
+                        if takeProfitR:
+                            print("Operacion toca TAKE PROFIT y se CIERRA")
+                            op_winners = op_winners +1
+                        else:
+                            print("Operacion toca STOP LOSS y se CIERRA")
+                            op_losers = op_losers + 1
+
                 print(f'Precio actual: {tiempo_actual} - {fila.Close}')
                 price1 = float(fila.Close)
                 price2 = float(filaAnt.Close)
                 dataRecorrida = data.tail(totalLength - indice)
-                ssl_channel = indicadores.calculate_ssl_channel(dataRecorrida, smaValue)
+                ssl_channel = indicadores.calculate_ssl_channel(dataRecorrida, smaValue, emaValue)
                 sslHigh = ssl_channel['sslHigh']
                 sslLow = ssl_channel['sslLow']
 
-                long_condition = indicadores.cruce_alza(price1, price2, sslHigh)
+                long_condition = indicadores.cruce_alza(price1, price2, sslHigh) and price1 > ssl_channel['ema']
                 long_close_condition = indicadores.cruce_baja(price1, price2, sslLow)
-                short_condition = indicadores.cruce_baja(price1, price2, sslLow)
+                short_condition = indicadores.cruce_baja(price1, price2, sslLow) and price1 < ssl_channel['ema']
                 short_close_condition = indicadores.cruce_alza(price1, price2, sslHigh)
 
                 if long_close_condition:
@@ -80,7 +94,7 @@ def strategy(data, smaValue, takeProfitValue, initialCapital):
                         print("CIERRO LONG PREVIOO")
                         [initialCapital, op_winners, op_losers] = utils.check_result(fila, priceOpened, price1, mode,
                                                                                      initialCapital, op_winners,
-                                                                                     op_losers)
+                                                                                     op_losers, fee)
                         order_open = False
                         mode = ""
                 if short_close_condition:
@@ -88,7 +102,7 @@ def strategy(data, smaValue, takeProfitValue, initialCapital):
                         print("CIERRO SHORT PREVIO")
                         [initialCapital, op_winners, op_losers] = utils.check_result(fila, priceOpened, price1, mode,
                                                                                      initialCapital, op_winners,
-                                                                                     op_losers)
+                                                                                     op_losers, fee)
                         order_open = False
                         mode = ""
 
@@ -100,6 +114,8 @@ def strategy(data, smaValue, takeProfitValue, initialCapital):
                         order_open = True
                         stopLoss = sslLow
                         stop_percent = bingx.open_position_mock(price1, sslLow)
+                        takeProfit = utils.calculate_percent_profit(price1, takeProfitPercent, mode)
+                        initialCapital = utils.apply_fees(initialCapital, fee)
                         priceOpened = price1
                     else:
                         print("DEMASIADO RIESGO PARA ABRIR LONG")
@@ -111,6 +127,8 @@ def strategy(data, smaValue, takeProfitValue, initialCapital):
                         order_open = True
                         stopLoss = sslHigh
                         stop_percent = bingx.open_position_mock(price1, sslHigh)
+                        takeProfit = utils.calculate_percent_profit(price1, takeProfitPercent, mode)
+                        initialCapital = utils.apply_fees(initialCapital, fee)
                         priceOpened = price1
 
                     else:
