@@ -20,7 +20,8 @@ def tester(symbol, temporality, smaValues, emaValues, takeProfitValues, startTim
                 capital_percent = ((capital*100)/initialCapital) - 100
                 result = {'beneficio': capital, 'beneficio_porcentaje': round(capital_percent,2), 'op_total': op_total, 'op_winner': op_winners, 'winner_percent': winner_percent
                           , 'op_losers': op_losers, 'loser_percent': loser_percent}
-                resultTest[smaValue] = result
+                key = str(smaValue) + "-" + str(emaValue) + "-" + str(takeProfitPercent)
+                resultTest[key] = result
 
     for result in resultTest:
         data = resultTest[result]
