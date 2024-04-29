@@ -1,3 +1,4 @@
+import aux_binance
 import bingx as bingx
 import json
 import pandas as pd
@@ -12,7 +13,8 @@ def tester(symbol, temporality, smaValues, emaValues, takeProfitValues, dates, i
         endDate = date.split("/")[1] + " 00:00:00"
         startTimeMilis = utils.convertDates(startDate)
         endTimeMilis = utils.convertDates(endDate)
-        data = get_all_data_market(symbol, temporality, "1440", startTimeMilis, endTimeMilis)
+        exchange = utils.change_exchange(startDate)
+        data = get_all_data_market(symbol, temporality, "1440", startTimeMilis, endTimeMilis, exchange)
         for smaValue in smaValues:
             for emaValue in emaValues:
                 for takeProfitPercent in takeProfitValues:
@@ -167,12 +169,17 @@ def get_data_market(symbol, temporality, limit, startDate):
     df.set_index('time')
     return df
 
-def get_all_data_market(symbol, temporality, limit, startDate, endDate):
+def get_all_data_market(symbol, temporality, limit, startDate, endDate, bingx_binance):
     finalDataFrame = pd.DataFrame()
     finalDate = 0
     while finalDate < endDate:
-        data = get_data_market(symbol, temporality,limit, startDate)
-        lastDate = str(data.iloc[0].time).split('+')[0]
+        if bingx_binance == "bingx":
+            data = get_data_market(symbol, temporality,limit, startDate)
+            lastDate = str(data.iloc[0].time).split('+')[0]
+        elif bingx_binance == "binance":
+            data = aux_binance.get_data_market(symbol, temporality, startDate)
+            lastDate = str(data.iloc[0].time)
+
         if data.shape[0] == 1:
             finalDate = endDate
         else:

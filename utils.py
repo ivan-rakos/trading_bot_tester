@@ -93,3 +93,9 @@ def check_result(data, priceOpened, priceClosed, mode, capital, op_winners, op_l
 def apply_fees(capital, fee):
     fee_calculated = capital * fee
     return capital-fee_calculated
+
+def change_exchange(date):
+    exchange = "binance"
+    if "2022-04" in date or "2023" in date or "2024" in date:
+        exchange = "bingx"
+    return exchange

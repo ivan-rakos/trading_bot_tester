@@ -8,8 +8,8 @@ config = configparser.ConfigParser()
 config.read("config.ini")
 
 APIURL = "https://open-api.bingx.com"
-APIKEY = config['DEFAULT']['API_KEY']
-SECRETKEY = config['DEFAULT']['SECRET_KEY']
+APIKEY = config['BINGX']['API_KEY']
+SECRETKEY = config['BINGX']['SECRET_KEY']
 
 
 def get_sign(api_secret, payload):
