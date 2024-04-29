@@ -95,7 +95,7 @@ def apply_fees(capital, fee):
     return capital-fee_calculated
 
 def change_exchange(date):
-    exchange = "binance"
-    if "2022-04" in date or "2023" in date or "2024" in date:
-        exchange = "bingx"
+    exchange = "bingx"
+    if "2022-01" in date or "2022-02" in date or "2022-03" in date or "2020" in date or "2021" in date:
+        exchange = "binance"
     return exchange

@@ -5,7 +5,7 @@ if __name__ == '__main__':
     temporality = "30m"
     smaValues = [21]
     emaValues = [37]
-    takeProfitValues = [200]
+    takeProfitValues = [30]
     startDate = "2024-04-01 00:00:00"
     endDate = "2024-04-30 00:00:00"
     single_month = ["2021-01-01/2021-01-30"]
@@ -26,4 +26,4 @@ if __name__ == '__main__':
 
     dates_all = dates_bullrun + dates_2022_2024
     initialCapital = 1000
-    tester.tester(symbol, temporality, smaValues, emaValues, takeProfitValues, dates_all, initialCapital)
+    tester.tester(symbol, temporality, smaValues, emaValues, takeProfitValues, dates_2022_2024, initialCapital)
