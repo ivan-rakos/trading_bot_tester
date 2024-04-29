@@ -5,33 +5,38 @@ import utils
 import indicadores
 
 
-def tester(symbol, temporality, smaValues, emaValues, takeProfitValues, startTime, endTime, initialCapital):
-    startTimeMilis = utils.convertDates(startTime)
-    endTimeMilis = utils.convertDates(endTime)
-    data = get_all_data_market(symbol, temporality, "1440", startTimeMilis, endTimeMilis)
+def tester(symbol, temporality, smaValues, emaValues, takeProfitValues, dates, initialCapital):
     resultTest = dict()
-    for smaValue in smaValues:
-        for emaValue in emaValues:
-            for takeProfitPercent in takeProfitValues:
-                [capital, op_winners, op_losers] = strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital)
-                op_total = op_winners + op_losers
-                winner_percent = (op_winners * 100) / op_total
-                loser_percent = (op_losers * 100) / op_total
-                capital_percent = ((capital*100)/initialCapital) - 100
-                result = {'beneficio': capital, 'beneficio_porcentaje': round(capital_percent,2), 'op_total': op_total, 'op_winner': op_winners, 'winner_percent': winner_percent
-                          , 'op_losers': op_losers, 'loser_percent': loser_percent}
-                key = str(smaValue) + "-" + str(emaValue) + "-" + str(takeProfitPercent)
-                resultTest[key] = result
-
+    for date in dates:
+        startDate = date.split("/")[0]+" 00:00:00"
+        endDate = date.split("/")[1] + " 00:00:00"
+        startTimeMilis = utils.convertDates(startDate)
+        endTimeMilis = utils.convertDates(endDate)
+        data = get_all_data_market(symbol, temporality, "1440", startTimeMilis, endTimeMilis)
+        for smaValue in smaValues:
+            for emaValue in emaValues:
+                for takeProfitPercent in takeProfitValues:
+                    [capital, op_winners, op_losers] = strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital)
+                    op_total = op_winners + op_losers
+                    winner_percent = (op_winners * 100) / op_total
+                    loser_percent = (op_losers * 100) / op_total
+                    capital_percent = ((capital*100)/initialCapital) - 100
+                    result = {'beneficio': capital, 'beneficio_porcentaje': round(capital_percent,2), 'op_total': op_total, 'op_winner': op_winners, 'winner_percent': winner_percent
+                              , 'op_losers': op_losers, 'loser_percent': loser_percent}
+                    key = startDate.split("-01 ")[0]+"--"+str(smaValue) + "-" + str(emaValue) + "-" + str(takeProfitPercent)
+                    resultTest[key] = result
+    str_profits_resume = ""
     for result in resultTest:
         data = resultTest[result]
         beneficio = data['beneficio']
         capital_percent = data['beneficio_porcentaje']
         op_total = data['op_total']
-        op_winner = data['op_winner']
+        op_winners = data['op_winner']
         winner_percent = data['winner_percent']
         op_losers = data['op_losers']
         loser_percent = data['loser_percent']
+        key = result.split("--")[0]
+        str_profits_resume = str_profits_resume + key +": "+str(capital_percent) + "\n"
         print("###################### RESULTADOS ##################")
         print(f'Resultados del test realizado con ema: {result}')
         print(f'Beneficio final: {beneficio} --> {capital_percent}%')
@@ -39,6 +44,7 @@ def tester(symbol, temporality, smaValues, emaValues, takeProfitValues, startTim
         print(f'Operaciones ganadoras : {op_winners} - {winner_percent}%')
         print(f'Operaciones perdedoras : {op_losers} - {loser_percent}%')
         print("###################### FIN RESULTADOS ##################")
+    print(str_profits_resume)
 
 
 
@@ -109,7 +115,7 @@ def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
 
                 if long_condition and not order_open:
                     calculateRisk = ((price1 * 100) / sslLow) - 100
-                    if calculateRisk <= 3:
+                    if calculateRisk <= 4:
                         mode = "buy"
                         print("ABRO LONG")
                         order_open = True
@@ -122,7 +128,7 @@ def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
                         print("DEMASIADO RIESGO PARA ABRIR LONG")
                 elif short_condition and not order_open:
                     calculateRisk = 100 - ((price1 * 100) / sslHigh)
-                    if calculateRisk <= 3:
+                    if calculateRisk <= 4:
                         mode = "sell"
                         print("ABRO SHORT")
                         order_open = True
