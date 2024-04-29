@@ -1,6 +1,7 @@
 from ta.momentum import RSIIndicator
 from ta.trend import EMAIndicator
 from ta.trend import SMAIndicator
+from ta.trend import ADXIndicator
 
 
 def calculate_rsi(data, length):
@@ -21,7 +22,6 @@ def calculate_ema(data, periods):
 def calculate_sma(data, periods):
     dataResult = data[::-1].reset_index(drop=True)
     dataEma = SMAIndicator(dataResult, int(periods)).sma_indicator()
-    a = 1
     return round(dataEma.get(dataEma.size-2), 3)
 
 
@@ -32,7 +32,10 @@ def calculate_ssl_channel(data, period, ema):
 
     return {'sslHigh': sslHigh, 'sslLow': sslLow, 'ema': ema}
 
-
+def calculate_adx(data, period):
+    #dataResult = data[::-1].reset_index(drop=True)
+    adx = ADXIndicator(data.high, data.low, data.Close, period).adx()
+    return adx
 def cruce_alza(price1, price2, sslHigh):
     return price1 > sslHigh and price2 < sslHigh
 def cruce_baja(price1, price2, sslLow):

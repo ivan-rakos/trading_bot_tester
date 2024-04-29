@@ -9,12 +9,22 @@ import indicadores
 def tester(symbol, temporality, smaValues, emaValues, takeProfitValues, dates, initialCapital):
     resultTest = dict()
     for date in dates:
-        startDate = date.split("/")[0]+" 00:00:00"
-        endDate = date.split("/")[1] + " 00:00:00"
-        startTimeMilis = utils.convertDates(startDate)
-        endTimeMilis = utils.convertDates(endDate)
-        exchange = utils.change_exchange(startDate)
-        data = get_all_data_market(symbol, temporality, "1440", startTimeMilis, endTimeMilis, exchange)
+        data = pd.DataFrame()
+        try:
+            data = pd.read_csv("resources/"+date+"_"+temporality+".csv", sep=',')
+        except Exception as error:
+            startDate = date+"-01 00:00:00"
+            endDate = ""
+            if "-02" in date:
+                endDate = date + "-28 00:00:00"
+            else:
+                endDate = date + "-30 00:00:00"
+            startTimeMilis = utils.convertDates(startDate)
+            endTimeMilis = utils.convertDates(endDate)
+            exchange = utils.change_exchange(startDate)
+            data = get_all_data_market(symbol, temporality, "1440", startTimeMilis, endTimeMilis, exchange)
+            data.to_csv("resources/"+startDate.split("-01 ")[0]+"_"+temporality+".csv", index = False)
+
         for smaValue in smaValues:
             for emaValue in emaValues:
                 for takeProfitPercent in takeProfitValues:
@@ -25,7 +35,7 @@ def tester(symbol, temporality, smaValues, emaValues, takeProfitValues, dates, i
                     capital_percent = ((capital*100)/initialCapital) - 100
                     result = {'beneficio': capital, 'beneficio_porcentaje': round(capital_percent,2), 'op_total': op_total, 'op_winner': op_winners, 'winner_percent': winner_percent
                               , 'op_losers': op_losers, 'loser_percent': loser_percent}
-                    key = startDate.split("-01 ")[0]+"--"+str(smaValue) + "-" + str(emaValue) + "-" + str(takeProfitPercent)
+                    key = date+"--"+str(smaValue) + "-" + str(emaValue) + "-" + str(takeProfitPercent)
                     resultTest[key] = result
     str_profits_resume = ""
     for result in resultTest:
@@ -89,6 +99,7 @@ def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
                 price1 = float(fila.Close)
                 price2 = float(filaAnt.Close)
                 dataRecorrida = data.tail(totalLength - indice)
+                #adx = indicadores.calculate_adx(dataRecorrida, 14)
                 ssl_channel = indicadores.calculate_ssl_channel(dataRecorrida, smaValue, emaValue)
                 sslHigh = ssl_channel['sslHigh']
                 sslLow = ssl_channel['sslLow']
@@ -188,5 +199,10 @@ def get_all_data_market(symbol, temporality, limit, startDate, endDate, bingx_bi
         if finalDate != endDate:
             finalDataFrame = pd.concat([data, finalDataFrame])
 
-    df_filtrado = finalDataFrame[finalDataFrame['time'] <= utils.timestampToDate(endDate)]
-    return df_filtrado.drop_duplicates()
+    df_filtrado = pd.DataFrame()
+    if bingx_binance == "binance":
+        df_filtrado = finalDataFrame[finalDataFrame['time'] <= utils.timestampToDate(endDate)]
+        df_filtrado.drop_duplicates()
+    elif bingx_binance == "bingx":
+        df_filtrado = finalDataFrame.drop_duplicates()
+    return df_filtrado
