@@ -26,4 +26,4 @@ if __name__ == '__main__':
 
     dates_all = dates_bullrun + dates_2022_2024
     initialCapital = 1000
-    tester.tester(symbol, temporality, smaValues, emaValues, takeProfitValues, dates_2022_2024, initialCapital)
+    tester.tester(symbol, temporality, smaValues, emaValues, takeProfitValues, single_month, initialCapital)

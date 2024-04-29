@@ -187,4 +187,6 @@ def get_all_data_market(symbol, temporality, limit, startDate, endDate, bingx_bi
         startDate = finalDate
         if finalDate != endDate:
             finalDataFrame = pd.concat([data, finalDataFrame])
-    return finalDataFrame.drop_duplicates()
+
+    df_filtrado = finalDataFrame[finalDataFrame['time'] <= utils.timestampToDate(endDate)]
+    return df_filtrado.drop_duplicates()
