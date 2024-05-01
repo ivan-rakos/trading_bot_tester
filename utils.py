@@ -103,6 +103,11 @@ def change_exchange(date):
 def print_results(dataResults):
     print(json.dumps(dataResults, indent=4))
 
+def save_results(dataResults):
+    with open('resultados.txt', 'a') as f:
+        # Escribe en el archivo
+        f.write(json.dumps(dataResults, indent=4))
+
 def generate_all_results(op_winners, op_losers, capital, initialCapital, smaValue, emaValue, takeProfitPercent, date, dict):
     op_total = op_winners + op_losers
     winner_percent = (op_winners * 100) / op_total

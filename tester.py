@@ -22,10 +22,11 @@ def tester(symbol, temporality, smaValues, emaValues, takeProfitValues, dates, i
                     #                              takeProfitPercent, date, resultTest)
 
     print("######### RESULTADOS MENSUALES ###########")
-    utils.print_results(resultTest)
+    #utils.print_results(resultTest)
+    utils.save_results(resultTest)
     print()
     print("######### MEDIA RENTABILIDAD #############")
-    utils.print_results(utils.calculate_avg_profit(resultTest))
+    utils.save_results(utils.calculate_avg_profit(resultTest))
 
 
 
