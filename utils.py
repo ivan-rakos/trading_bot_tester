@@ -99,3 +99,55 @@ def change_exchange(date):
     if "2022-01" in date or "2022-02" in date or "2022-03" in date or "2020" in date or "2021" in date:
         exchange = "binance"
     return exchange
+
+def print_results(dataResults):
+    print(json.dumps(dataResults, indent=4))
+
+def generate_all_results(op_winners, op_losers, capital, initialCapital, smaValue, emaValue, takeProfitPercent, date, dict):
+    op_total = op_winners + op_losers
+    winner_percent = (op_winners * 100) / op_total
+    loser_percent = (op_losers * 100) / op_total
+    capital_percent = ((capital * 100) / initialCapital) - 100
+    result = {'beneficio': capital, 'beneficio_porcentaje': round(capital_percent, 2), 'op_total': op_total,
+              'op_winner': op_winners, 'winner_percent': winner_percent
+        , 'op_losers': op_losers, 'loser_percent': loser_percent}
+    key = str(smaValue) + "-" + str(emaValue) + "-" + str(takeProfitPercent)
+    resumeDate = {date: result}
+    if key in dict:
+        dict[key].update(resumeDate)
+    else:
+        dict[key] = resumeDate
+
+    return dict
+
+def generate_profit(capital, initialCapital, smaValue, emaValue, takeProfitPercent, date, dict):
+    capital_percent = ((capital * 100) / initialCapital) - 100
+    result = {'beneficio_porcentaje': round(capital_percent, 2)}
+    key = str(smaValue) + "-" + str(emaValue) + "-" + str(takeProfitPercent)
+    resumeDate = {date: result}
+    if key in dict:
+        dict[key].update(resumeDate)
+    else:
+        dict[key] = resumeDate
+
+    return dict
+
+def calculate_avg_profit(result):
+    medias_por_clave = {}
+
+    for clave, subdiccionario in result.items():
+        # Inicializamos la suma y el contador para cada clave
+        suma_valores = 0
+        contador_valores = 0
+
+        # Iteramos sobre los valores del subdiccionario
+        for valor in subdiccionario.values():
+            suma_valores += valor["beneficio_porcentaje"]
+            contador_valores += 1
+
+        # Calculamos la media para la clave actual
+        media = suma_valores / contador_valores
+
+        # Guardamos la media para la clave actual
+        medias_por_clave[clave] = media
+    return medias_por_clave

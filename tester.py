@@ -9,54 +9,24 @@ import indicadores
 def tester(symbol, temporality, smaValues, emaValues, takeProfitValues, dates, initialCapital):
     resultTest = dict()
     for date in dates:
-        data = pd.DataFrame()
-        try:
-            data = pd.read_csv("resources/"+date+"_"+temporality+".csv", sep=',')
-        except Exception as error:
-            startDate = date+"-01 00:00:00"
-            endDate = ""
-            if "-02" in date:
-                endDate = date + "-28 00:00:00"
-            else:
-                endDate = date + "-30 00:00:00"
-            startTimeMilis = utils.convertDates(startDate)
-            endTimeMilis = utils.convertDates(endDate)
-            exchange = utils.change_exchange(startDate)
-            data = get_all_data_market(symbol, temporality, "1440", startTimeMilis, endTimeMilis, exchange)
-            data.to_csv("resources/"+startDate.split("-01 ")[0]+"_"+temporality+".csv", index = False)
-
+        data = get_pd_data_market(symbol, date, temporality)
         for smaValue in smaValues:
             for emaValue in emaValues:
                 for takeProfitPercent in takeProfitValues:
-                    [capital, op_winners, op_losers] = strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital)
-                    op_total = op_winners + op_losers
-                    winner_percent = (op_winners * 100) / op_total
-                    loser_percent = (op_losers * 100) / op_total
-                    capital_percent = ((capital*100)/initialCapital) - 100
-                    result = {'beneficio': capital, 'beneficio_porcentaje': round(capital_percent,2), 'op_total': op_total, 'op_winner': op_winners, 'winner_percent': winner_percent
-                              , 'op_losers': op_losers, 'loser_percent': loser_percent}
-                    key = date+"--"+str(smaValue) + "-" + str(emaValue) + "-" + str(takeProfitPercent)
-                    resultTest[key] = result
-    str_profits_resume = ""
-    for result in resultTest:
-        data = resultTest[result]
-        beneficio = data['beneficio']
-        capital_percent = data['beneficio_porcentaje']
-        op_total = data['op_total']
-        op_winners = data['op_winner']
-        winner_percent = data['winner_percent']
-        op_losers = data['op_losers']
-        loser_percent = data['loser_percent']
-        key = result.split("--")[0]
-        str_profits_resume = str_profits_resume + key +": "+str(capital_percent) + "\n"
-        print("###################### RESULTADOS ##################")
-        print(f'Resultados del test realizado con ema: {result}')
-        print(f'Beneficio final: {beneficio} --> {capital_percent}%')
-        print(f'Operaciones totales : {op_total}')
-        print(f'Operaciones ganadoras : {op_winners} - {winner_percent}%')
-        print(f'Operaciones perdedoras : {op_losers} - {loser_percent}%')
-        print("###################### FIN RESULTADOS ##################")
-    print(str_profits_resume)
+                    [capital, op_winners, op_losers] = strategy(data, smaValue, emaValue, takeProfitPercent,
+                                                                initialCapital)
+                    resultTest = utils.generate_profit(capital, initialCapital, smaValue, emaValue, takeProfitPercent,
+                                                       date, resultTest)
+
+                    #resultTest = utils.generate_results(op_winners, op_losers, capital, initialCapital, smaValue, emaValue,
+                    #                              takeProfitPercent, date, resultTest)
+
+    print("######### RESULTADOS MENSUALES ###########")
+    utils.print_results(resultTest)
+    print()
+    print("######### MEDIA RENTABILIDAD #############")
+    utils.print_results(utils.calculate_avg_profit(resultTest))
+
 
 
 
@@ -89,13 +59,13 @@ def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
                         order_open = False
                         mode = ""
                         if takeProfitR:
-                            print("Operacion toca TAKE PROFIT y se CIERRA")
+                            #print("Operacion toca TAKE PROFIT y se CIERRA")
                             op_winners = op_winners +1
                         else:
-                            print("Operacion toca STOP LOSS y se CIERRA")
+                            #print("Operacion toca STOP LOSS y se CIERRA")
                             op_losers = op_losers + 1
 
-                print(f'Precio actual: {tiempo_actual} - {fila.Close}')
+                #print(f'Precio actual: {tiempo_actual} - {fila.Close}')
                 price1 = float(fila.Close)
                 price2 = float(filaAnt.Close)
                 dataRecorrida = data.tail(totalLength - indice)
@@ -111,7 +81,7 @@ def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
 
                 if long_close_condition:
                     if order_open and mode != "sell":
-                        print("CIERRO LONG PREVIOO")
+                        #print("CIERRO LONG PREVIOO")
                         [initialCapital, op_winners, op_losers] = utils.check_result(fila, priceOpened, price1, mode,
                                                                                      initialCapital, op_winners,
                                                                                      op_losers, fee)
@@ -119,7 +89,7 @@ def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
                         mode = ""
                 if short_close_condition:
                     if order_open and mode != "buy":
-                        print("CIERRO SHORT PREVIO")
+                        #print("CIERRO SHORT PREVIO")
                         [initialCapital, op_winners, op_losers] = utils.check_result(fila, priceOpened, price1, mode,
                                                                                      initialCapital, op_winners,
                                                                                      op_losers, fee)
@@ -128,9 +98,9 @@ def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
 
                 if long_condition and not order_open:
                     calculateRisk = ((price1 * 100) / sslLow) - 100
-                    if calculateRisk <= 4:
+                    if calculateRisk <= 3.5:
                         mode = "buy"
-                        print("ABRO LONG")
+                        #print("ABRO LONG")
                         order_open = True
                         stopLoss = sslLow
                         stop_percent = bingx.open_position_mock(price1, sslLow)
@@ -141,9 +111,9 @@ def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
                         print("DEMASIADO RIESGO PARA ABRIR LONG")
                 elif short_condition and not order_open:
                     calculateRisk = 100 - ((price1 * 100) / sslHigh)
-                    if calculateRisk <= 4:
+                    if calculateRisk <= 3.5:
                         mode = "sell"
-                        print("ABRO SHORT")
+                        #print("ABRO SHORT")
                         order_open = True
                         stopLoss = sslHigh
                         stop_percent = bingx.open_position_mock(price1, sslHigh)
@@ -206,3 +176,20 @@ def get_all_data_market(symbol, temporality, limit, startDate, endDate, bingx_bi
     elif bingx_binance == "bingx":
         df_filtrado = finalDataFrame.drop_duplicates()
     return df_filtrado
+
+
+def get_pd_data_market(symbol, date, temporality):
+    try:
+        data = pd.read_csv("resources/" + date + "_" + temporality + ".csv", sep=',')
+    except Exception as error:
+        startDate = date + "-01 00:00:00"
+        if "-02" in date:
+            endDate = date + "-28 00:00:00"
+        else:
+            endDate = date + "-30 00:00:00"
+        startTimeMilis = utils.convertDates(startDate)
+        endTimeMilis = utils.convertDates(endDate)
+        exchange = utils.change_exchange(startDate)
+        data = get_all_data_market(symbol, temporality, "1440", startTimeMilis, endTimeMilis, exchange)
+        data.to_csv("resources/" + startDate.split("-01 ")[0] + "_" + temporality + ".csv", index=False)
+    return data
