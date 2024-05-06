@@ -156,3 +156,24 @@ def calculate_avg_profit(result):
         # Guardamos la media para la clave actual
         medias_por_clave[clave] = media
     return medias_por_clave
+
+
+def checkBreakEven(data, stopLoss, priceOpened, mode, percent_stop):
+    breakEven = stopLoss
+    current_price_close = float(data.Close)
+    curren_price_high = float(data.high)
+    curren_price_low = float(data.low)
+    if mode == "buy":
+        profit = priceOpened + (priceOpened * (1.5/100))
+        if curren_price_high >= profit or current_price_close >= profit:
+            breakEven = priceOpened
+            percent_stop = 0
+            print("Cambio stop a breakeven")
+    if mode == "sell":
+        profit = priceOpened - (priceOpened * (1.5/100))
+        if curren_price_low <= profit or current_price_close <= profit:
+            breakEven = priceOpened
+            percent_stop = 0
+            print("Cambio stop a breakeven")
+
+    return [breakEven, percent_stop]

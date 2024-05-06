@@ -60,13 +60,14 @@ def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
                         order_open = False
                         mode = ""
                         if takeProfitR:
-                            #print("Operacion toca TAKE PROFIT y se CIERRA")
+                            print("Operacion toca TAKE PROFIT y se CIERRA")
                             op_winners = op_winners +1
                         else:
-                            #print("Operacion toca STOP LOSS y se CIERRA")
+                            print("Operacion toca STOP LOSS y se CIERRA")
                             op_losers = op_losers + 1
-
-                #print(f'Precio actual: {tiempo_actual} - {fila.Close}')
+                    #elif stopLoss != priceOpened:  DESCOMENTAR EN CASO DE QUERER PROTEGER LA OPERACION EN X% DE PROFIT
+                    #    [stopLoss, stop_percent] = utils.checkBreakEven(fila, stopLoss, priceOpened, mode, stop_percent)
+                print(f'Precio actual: {tiempo_actual} - {fila.Close}')
                 price1 = float(fila.Close)
                 price2 = float(filaAnt.Close)
                 dataRecorrida = data.tail(totalLength - indice)
@@ -82,7 +83,7 @@ def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
 
                 if long_close_condition:
                     if order_open and mode != "sell":
-                        #print("CIERRO LONG PREVIOO")
+                        print("CIERRO LONG PREVIOO")
                         [initialCapital, op_winners, op_losers] = utils.check_result(fila, priceOpened, price1, mode,
                                                                                      initialCapital, op_winners,
                                                                                      op_losers, fee)
@@ -90,7 +91,7 @@ def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
                         mode = ""
                 if short_close_condition:
                     if order_open and mode != "buy":
-                        #print("CIERRO SHORT PREVIO")
+                        print("CIERRO SHORT PREVIO")
                         [initialCapital, op_winners, op_losers] = utils.check_result(fila, priceOpened, price1, mode,
                                                                                      initialCapital, op_winners,
                                                                                      op_losers, fee)
@@ -101,7 +102,7 @@ def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
                     calculateRisk = ((price1 * 100) / sslLow) - 100
                     if calculateRisk <= 3.5:
                         mode = "buy"
-                        #print("ABRO LONG")
+                        print("ABRO LONG")
                         order_open = True
                         stopLoss = sslLow
                         stop_percent = bingx.open_position_mock(price1, sslLow)
@@ -114,7 +115,7 @@ def strategy(data, smaValue, emaValue, takeProfitPercent, initialCapital):
                     calculateRisk = 100 - ((price1 * 100) / sslHigh)
                     if calculateRisk <= 3.5:
                         mode = "sell"
-                        #print("ABRO SHORT")
+                        print("ABRO SHORT")
                         order_open = True
                         stopLoss = sslHigh
                         stop_percent = bingx.open_position_mock(price1, sslHigh)
@@ -180,8 +181,9 @@ def get_all_data_market(symbol, temporality, limit, startDate, endDate, bingx_bi
 
 
 def get_pd_data_market(symbol, date, temporality):
+    path = "resources/"+symbol+"/"
     try:
-        data = pd.read_csv("resources/" + date + "_" + temporality + ".csv", sep=',')
+        data = pd.read_csv(path + date + "_" + temporality + ".csv", sep=',')
     except Exception as error:
         startDate = date + "-01 00:00:00"
         if "-02" in date:
@@ -192,5 +194,5 @@ def get_pd_data_market(symbol, date, temporality):
         endTimeMilis = utils.convertDates(endDate)
         exchange = utils.change_exchange(startDate)
         data = get_all_data_market(symbol, temporality, "1440", startTimeMilis, endTimeMilis, exchange)
-        data.to_csv("resources/" + startDate.split("-01 ")[0] + "_" + temporality + ".csv", index=False)
+        data.to_csv(path + startDate.split("-01 ")[0] + "_" + temporality + ".csv", index=False)
     return data

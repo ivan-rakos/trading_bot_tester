@@ -19,6 +19,9 @@ def get_data_market(symbol, temporality, limit):
     json_candles = json.loads(dataCandles)
     candles_string = json.dumps(json_candles['data'])
     df = pd.DataFrame(json.loads(candles_string))
+    df['high'] = df['high'].astype(float)
+    df['close'] = df['close'].astype(float)
+    df['low'] = df['low'].astype(float)
     df.set_index('time')
     return df
 

@@ -33,8 +33,11 @@ def calculate_ssl_channel(data, period, ema):
     return {'sslHigh': sslHigh, 'sslLow': sslLow, 'ema': ema}
 
 def calculate_adx(data, period):
-    #dataResult = data[::-1].reset_index(drop=True)
-    adx = ADXIndicator(data.high, data.low, data.Close, period).adx()
+    dataResult = data[::-1].reset_index(drop=True)
+    dataResult['Close'] = dataResult['Close'].astype(float)
+    dataResult['high'] = dataResult['high'].astype(float)
+    dataResult['low'] = dataResult['low'].astype(float)
+    adx = ADXIndicator(dataResult.high, dataResult.low, dataResult.Close, period).adx()
     return adx
 def cruce_alza(price1, price2, sslHigh):
     return price1 > sslHigh and price2 < sslHigh
