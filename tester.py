@@ -4,6 +4,7 @@ import json
 import pandas as pd
 import utils
 import indicadores
+import numpy as np
 
 
 def tester(symbol, temporality, smaValues, emaValues, takeProfitValues, dates, initialCapital):
@@ -148,6 +149,7 @@ def get_data_market(symbol, temporality, limit, startDate):
     candles_string = json.dumps(json_candles['data'])
     df = pd.DataFrame(json.loads(candles_string))
     df.rename(columns={'close': 'Close'}, inplace=True)
+    df['Close Time'] = df['time']
     df['time'] = pd.to_datetime(df['time'], utc=True, unit='ms')
     df.set_index('time')
     return df
@@ -172,11 +174,8 @@ def get_all_data_market(symbol, temporality, limit, startDate, endDate, bingx_bi
             finalDataFrame = pd.concat([data, finalDataFrame])
 
     df_filtrado = pd.DataFrame()
-    if bingx_binance == "binance":
-        df_filtrado = finalDataFrame[finalDataFrame['time'] <= utils.timestampToDate(endDate)]
-        df_filtrado.drop_duplicates()
-    elif bingx_binance == "bingx":
-        df_filtrado = finalDataFrame.drop_duplicates()
+    df_filtrado = finalDataFrame[finalDataFrame['Close Time'] <= endDate]
+    df_filtrado = df_filtrado.drop_duplicates()
     return df_filtrado
 
 
@@ -185,11 +184,20 @@ def get_pd_data_market(symbol, date, temporality):
     try:
         data = pd.read_csv(path + date + "_" + temporality + ".csv", sep=',')
     except Exception as error:
-        startDate = date + "-01 00:00:00"
-        if "-02" in date:
-            endDate = date + "-28 00:00:00"
+        date_parts = date.split("-")
+        start_month = int(date_parts[1])
+        start_year = int(date_parts[0])
+        end_month = 0
+        end_year = 0
+        if start_month == 12:
+            end_month = 1
+            end_year = start_year + 1
         else:
-            endDate = date + "-30 00:00:00"
+            end_month = start_month + 1
+            end_year = start_year
+
+        startDate = date + "-01 00:00:00"
+        endDate = str(end_year)+"-"+str(end_month).zfill(2) + "-01 00:00:00"
         startTimeMilis = utils.convertDates(startDate)
         endTimeMilis = utils.convertDates(endDate)
         exchange = utils.change_exchange(startDate)

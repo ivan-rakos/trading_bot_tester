@@ -1,7 +1,7 @@
 import bingx
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 
@@ -29,6 +29,8 @@ def calculate_tp_sl(side, profit, stop, price):
 
 
 def convertDates(strDate):
+    if "+00" in strDate:
+        strDate = strDate.split("+")[0]
     fecha_hora = time.strptime(strDate, "%Y-%m-%d %H:%M:%S")
     fecha_hora_datetime = datetime.fromtimestamp(time.mktime(fecha_hora))
     tiempo_segundos = (fecha_hora_datetime - datetime(1970, 1, 1)).total_seconds()
